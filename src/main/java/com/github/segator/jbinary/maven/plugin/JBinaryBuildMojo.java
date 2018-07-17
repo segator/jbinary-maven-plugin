@@ -52,13 +52,16 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
     private String jreVersion;
-    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.4")
+    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA1")
     private String jBinaryVersion;
-    @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/0.0.4/windows_amd64_jbinary_%s.exe")
+    @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
     private String JBinaryURLWindows;
 
-    @Parameter(property = "JBinaryURLLinux", defaultValue = "https://github.com/segator/jbinary/releases/download/0.0.4/linux_amd64_jbinary_%s")
+    @Parameter(property = "JBinaryURLLinux", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s")
     private String JBinaryURLLinux;
+    
+    @Parameter(property = "useMavenRepositoryJavaDownload")
+    private boolean useMavenRepositoryJavaDownload=false;
 
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
     private String finalName;
@@ -127,7 +130,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 JBinaryURL = JBinaryURLLinux;
                 break;
         }
-        URL jbinaryURL = new URL(String.format(JBinaryURL, jBinaryVersion));
+        URL jbinaryURL = new URL(String.format(JBinaryURL, jBinaryVersion,jBinaryVersion));
         String JBinaryNameFile = FilenameUtils.getName(jbinaryURL.getPath());
         Path jbinaryPath = Paths.get(outputDirectory.getAbsolutePath(), JBinaryNameFile);
         if (!jbinaryPath.toFile().exists()) {
@@ -145,12 +148,15 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException {
         getLog().info("building executable file with embeded JRE version" + jreVersion);
-        CommandLine cmd = CommandLine.parse(String.format("%s -platform %s -output-name %s -jar %s -build %s",
+        
+        String serverURLParam=useMavenRepositoryJavaDownload?String.format("-java-server-url %s",project.getRepositories().get(0).getUrl()):"";
+        CommandLine cmd = CommandLine.parse(String.format("%s -platform %s -output-name %s -jar %s -build %s %s",
                 jBinaryExecutable.getAbsolutePath(),
                 platform,
                 finalName,
-                project.getArtifact().getFile().getAbsolutePath(),
-                outputDirectory.getAbsolutePath()));
+                project.getArtifact().getFile().getAbsolutePath(),                
+                outputDirectory.getAbsolutePath(),
+                serverURLParam));
         ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
         Executor exec = new DefaultExecutor();
         PumpStreamHandler psh = new PumpStreamHandler(System.out);
