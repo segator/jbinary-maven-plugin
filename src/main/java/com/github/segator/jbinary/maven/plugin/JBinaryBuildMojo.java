@@ -149,8 +149,8 @@ public class JBinaryBuildMojo extends AbstractMojo {
     private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException {
         getLog().info("building executable file with embeded JRE version" + jreVersion);
         
-        String serverURLParam=useMavenRepositoryJavaDownload?String.format("-java-server-url %s",project.getRepositories().get(0).getUrl()):"";
-        CommandLine cmd = CommandLine.parse(String.format("%s -platform %s -output-name %s -jar %s -build %s %s",
+        String serverURLParam=useMavenRepositoryJavaDownload?String.format("-java-server-url \"%s\"",project.getRepositories().get(0).getUrl()):"";
+        CommandLine cmd = CommandLine.parse(String.format("\"%s\" -platform \"%s\" -output-name \"%s\" -jar \"%s\" -build \"%s\" %s",
                 jBinaryExecutable.getAbsolutePath(),
                 platform,
                 finalName,
