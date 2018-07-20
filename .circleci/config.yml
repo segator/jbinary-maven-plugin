@@ -1,38 +1,104 @@
-# Java Maven CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-java/ for more details
-#
 version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
       - image: circleci/openjdk:8-jdk
-      
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    working_directory: ~/repo
-
-    environment:
-      # Customize the JVM maximum heap limit
-      MAVEN_OPTS: -Xmx3200m
-    
+    working_directory: /tmp/workspace/project
     steps:
       - checkout
-
-      # Download and cache dependencies
       - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "pom.xml" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
-      - run: mvn dependency:go-offline
-
+          keys: 
+            - maven-dependencies-{{ checksum "pom.xml" }}
+            - maven-dependencies-
+          
+      - run:  mvn -B -s .circleci/settings.xml clean compile
       - save_cache:
+          key: maven-dependencies-{{ checksum "pom.xml" }}
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ checksum "pom.xml" }}
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - project
+
+
+  test:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: /tmp/workspace/project
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: mvn -B -s .circleci/settings.xml test
+      
+  deploy:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: /tmp/workspace/project
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Configure Environment
+          command: |
+            mkdir -p ~/.gnupg
+            openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/secring.gpg.enc \
+            -out ~/.gnupg/secring.gpg -pass pass:${GPG_PASSPHRASE}
+            openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/pubring.gpg.enc \
+            -out ~/.gnupg/pubring.gpg -pass pass:${GPG_PASSPHRASE}
+
+      - run:
+          name: Deploy
+          command: mvn -B -s .circleci/settings.xml -DskipTests -Dgpg.passphrase=${GPG_PASSPHRASE} deploy -P ContinuousIntegration
+
+  release:
+    docker:
+      - image: circleci/openjdk:8-jdk
+    working_directory: /tmp/workspace/project
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Configure Environment
+          command: |
+            mkdir ~/.gnupg
+            mkdir ~/.ssh
+            openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/secring.gpg.enc \
+            -out ~/.gnupg/secring.gpg -pass pass:${GPG_PASSPHRASE}
+            openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/pubring.gpg.enc \
+            -out ~/.gnupg/pubring.gpg -pass pass:${GPG_PASSPHRASE}
+            git config --global user.email "$GIT_USER_EMAIL"
+            git config --global user.name "$GIT_USER_NAME"
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+      - run:
+          name: Prepare release
+          #command: mvn -B -s .circleci/settings.xml -DskipTests -Dtag=${MVN_TAG} release:prepare -DreleaseVersion=${MVN_RELEASE_VERSION} \
+          #         -DdevelopmentVersion=${MVN_DEVELOPMENT_VERSION} -P ContinuousIntegration    
+          command: mvn -B -s .circleci/settings.xml -DskipTests -Dproject.scm.id=github -Darguments=-Dgpg.passphrase=${GPG_PASSPHRASE} release:prepare -P ContinuousIntegration
+      - run:
+          name: Perform release
+          command: mvn -B -s .circleci/settings.xml release:perform -P ContinuousIntegration
+          
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
+      - release:
+          requires:
+            - test
+          filters:
+            branches:
+              only: /release\/\d.\d.x$/
+
+        
