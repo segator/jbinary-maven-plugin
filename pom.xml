@@ -139,6 +139,7 @@
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <useReleaseProfile>false</useReleaseProfile>
                     <releaseProfiles>release</releaseProfiles>
@@ -169,6 +170,15 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>de.jutzig</groupId>
+                        <artifactId>github-release-plugin</artifactId>
+                        <version>1.1.1</version>
+                        <configuration>                        
+                            <releaseName>Release ${project.version}</releaseName>
+                            <tag>v${project.version}</tag>
+                        </configuration>
+                    </plugin>
+                    <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>1.5</version>
@@ -179,7 +189,7 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
-                                <configuration>
+                                <configuration>                                    
                                     <gpgArguments>
                                         <arg>--pinentry-mode</arg>
                                         <arg>loopback</arg>

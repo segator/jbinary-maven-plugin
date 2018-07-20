@@ -49,7 +49,7 @@ jobs:
 
       - run:
           name: Deploy
-          command: mvn -B -s .circleci/settings.xml -DskipTests -Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.secretKeyring=${CIRCLE_WORKING_DIRECTORY}/secring.gpg deploy -P ContinuousIntegration
+          command: mvn -B -s .circleci/settings.xml -DskipTests -Dgpg.passphrase=${GPG_PASSPHRASE} deploy -P ContinuousIntegration
 
   release:
     docker:
@@ -66,17 +66,16 @@ jobs:
             -out /home/circleci/.gnupg/secring.gpg -pass pass:${GPG_PASSPHRASE}
             openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/pubring.gpg.enc \
             -out /home/circleci/.gnupg/pubring.gpg -pass pass:${GPG_PASSPHRASE}
+            git config --global user.email "$GIT_USER_EMAIL"
+            git config --global user.name "$GIT_USER_NAME"
       - run:
           name: Prepare release
           #command: mvn -B -s .circleci/settings.xml -DskipTests -Dtag=${MVN_TAG} release:prepare -DreleaseVersion=${MVN_RELEASE_VERSION} \
           #         -DdevelopmentVersion=${MVN_DEVELOPMENT_VERSION} -P ContinuousIntegration    
-          command: mvn -B -s .circleci/settings.xml -DskipTests -Dgpg.passphrase=${GPG_PASSPHRASE} release:prepare -P ContinuousIntegration    
+          command: mvn -B -s .circleci/settings.xml -DskipTests -Dproject.scm.id=github -Darguments=-Dgpg.passphrase=${GPG_PASSPHRASE} release:prepare -P ContinuousIntegration
       - run:
           name: Perform release
           command: mvn -B -s .circleci/settings.xml release:perform
-      - run:
-          name : Cleaning
-          command: rm ${CIRCLE_WORKING_DIRECTORY}/secring.gpg
           
 
 workflows:
@@ -92,12 +91,10 @@ workflows:
             - test
           filters:
             branches:
-              only: 
-                - master
-                - /release\/\d.\d.x$/
+              only: master
       - release:
           requires:
-            - deploy
+            - test
           filters:
             branches:
               only: /release\/\d.\d.x$/
