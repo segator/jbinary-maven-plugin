@@ -94,12 +94,12 @@ workflows:
             branches:
               only: 
                 - master
-                - /release\/(\d+.)+\d+(-RC\d+)?$/
+                - /release\/\d.\d.x$/
       - release:
           requires:
             - deploy
           filters:
             branches:
-              only: /release\/(\d+.)+\d+(-RC\d+)?$/
+              only: /release\/\d.\d.x$/
 
         
