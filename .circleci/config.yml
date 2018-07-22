@@ -68,8 +68,8 @@ jobs:
             openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/pubring.gpg.enc \
             -out ~/.gnupg/pubring.gpg -pass pass:${GPG_PASSPHRASE}
             git config --global user.email "$GIT_USER_EMAIL"
-            git config --global user.name "$GIT_USER_NAME"            
-            ssh-keyscan {{ github.com }} >> ~/.ssh/config
+            git config --global user.name "$GIT_USER_NAME"
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
       - run:
           name: Prepare release
           #command: mvn -B -s .circleci/settings.xml -DskipTests -Dtag=${MVN_TAG} release:prepare -DreleaseVersion=${MVN_RELEASE_VERSION} \
