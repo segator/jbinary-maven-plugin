@@ -39,7 +39,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: Configure GPG
+          name: Configure Environment
           command: |
             mkdir -p /home/circleci/.gnupg
             openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/secring.gpg.enc \
@@ -58,11 +58,8 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - add_ssh_keys:
-          fingerprints:
-            - "nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8"
       - run:
-          name: Configure GPG
+          name: Configure Environment
           command: |
             mkdir -p /home/circleci/.gnupg
             openssl enc -aes-256-cbc -d -in ${CIRCLE_WORKING_DIRECTORY}/.circleci/secring.gpg.enc \
@@ -71,6 +68,7 @@ jobs:
             -out /home/circleci/.gnupg/pubring.gpg -pass pass:${GPG_PASSPHRASE}
             git config --global user.email "$GIT_USER_EMAIL"
             git config --global user.name "$GIT_USER_NAME"
+            ssh-keyscan {{ github.com }} >> ~/.ssh/config
       - run:
           name: Prepare release
           #command: mvn -B -s .circleci/settings.xml -DskipTests -Dtag=${MVN_TAG} release:prepare -DreleaseVersion=${MVN_RELEASE_VERSION} \
