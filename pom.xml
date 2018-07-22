@@ -19,8 +19,8 @@
     </licenses>
  
     <scm>
-        <connection>scm:git:ssh://git@github.com:segator/jbinary-maven-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:segator/jbinary-maven-plugin.git</developerConnection>
+        <connection>scm:git:ssh://git@github.com/segator/jbinary-maven-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/segator/jbinary-maven-plugin.git</developerConnection>
         <url>http://github.com/segator/jbinary-maven-plugin/tree/master</url>
         <tag>HEAD</tag>
     </scm>
