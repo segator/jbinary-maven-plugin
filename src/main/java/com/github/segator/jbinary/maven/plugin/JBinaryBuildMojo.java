@@ -110,14 +110,6 @@ public class JBinaryBuildMojo extends AbstractMojo {
     private void archiveFile(File file, String platform) {
         String extension = file.getName().substring(file.getName().lastIndexOf(".") + 1);
         projectHelper.attachArtifact(project, extension, platform, file);
-
-//        MavenArchiver archiver = new MavenArchiver();
-//
-//        archiver.setArchiver(jarArchiver);
-//
-//        archiver.setOutputFile(file);
-//
-//        archive.setForced(false);
     }
 
     private File deployJBinary(String platform) throws MalformedURLException, FileNotFoundException, IOException {
