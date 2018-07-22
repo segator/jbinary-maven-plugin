@@ -77,7 +77,7 @@ jobs:
           command: mvn -B -s .circleci/settings.xml -DskipTests -Dproject.scm.id=github -Darguments=-Dgpg.passphrase=${GPG_PASSPHRASE} release:prepare -P ContinuousIntegration
       - run:
           name: Perform release
-          command: mvn -B -s .circleci/settings.xml release:perform
+          command: mvn -B -s .circleci/settings.xml release:perform -P ContinuousIntegration
           
 
 workflows:
