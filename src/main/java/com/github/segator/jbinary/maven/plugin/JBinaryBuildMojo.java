@@ -25,8 +25,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -34,6 +36,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.archiver.MavenArchiveConfiguration;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -52,16 +55,16 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
     private String jreVersion;
-    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA1")
+    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA3")
     private String jBinaryVersion;
     @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
     private String JBinaryURLWindows;
 
     @Parameter(property = "JBinaryURLLinux", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s")
     private String JBinaryURLLinux;
-    
+
     @Parameter(property = "useMavenRepositoryJavaDownload")
-    private boolean useMavenRepositoryJavaDownload=false;
+    private boolean useMavenRepositoryJavaDownload = false;
 
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
     private String finalName;
@@ -122,9 +125,10 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 JBinaryURL = JBinaryURLLinux;
                 break;
         }
-        URL jbinaryURL = new URL(String.format(JBinaryURL, jBinaryVersion,jBinaryVersion));
+        URL jbinaryURL = new URL(String.format(JBinaryURL, jBinaryVersion, jBinaryVersion));
         String JBinaryNameFile = FilenameUtils.getName(jbinaryURL.getPath());
-        Path jbinaryPath = Paths.get(outputDirectory.getAbsolutePath(), JBinaryNameFile);
+
+        Path jbinaryPath = Paths.get(System.getProperty("java.io.tmpdir"), JBinaryNameFile);
         if (!jbinaryPath.toFile().exists()) {
             getLog().info("Download -->" + jbinaryURL);
             ReadableByteChannel rbc = Channels.newChannel(jbinaryURL.openStream());
@@ -140,23 +144,38 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException {
         getLog().info("building executable file with embeded JRE version" + jreVersion);
-        
-        String serverURLParam=useMavenRepositoryJavaDownload?String.format("-java-server-url \"%s\"",project.getRepositories().get(0).getUrl()):"";
-        CommandLine cmd = CommandLine.parse(String.format("\"%s\" -platform \"%s\" -output-name \"%s\" -jar \"%s\" -build \"%s\" %s",
-                jBinaryExecutable.getAbsolutePath(),
-                platform,
-                finalName,
-                project.getArtifact().getFile().getAbsolutePath(),                
-                outputDirectory.getAbsolutePath(),
-                serverURLParam));
-        ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
-        Executor exec = new DefaultExecutor();
-        PumpStreamHandler psh = new PumpStreamHandler(System.out);
-        exec.setStreamHandler(psh);
-        exec.setWatchdog(wd);
-        int resultCode = exec.execute(cmd);
-        if (resultCode != 0) {
-            throw new IOException("Unexpected Exit Code" + resultCode);
+        List<Repository> repositories = project.getRepositories();
+        boolean executed = false;
+        for (Repository repository : repositories) {
+            String serverURLParam = useMavenRepositoryJavaDownload ? String.format("-java-server-url \"%s\"", repository.getUrl()) : "";
+            String commandString = String.format("\"%s\" -platform \"%s\" -output-name \"%s\" -jar \"%s\" -build \"%s\" %s",
+                    jBinaryExecutable.getAbsolutePath(),
+                    platform,
+                    finalName,
+                    project.getArtifact().getFile().getAbsolutePath(),
+                    outputDirectory.getAbsolutePath(),
+                    serverURLParam);
+            CommandLine cmd = CommandLine.parse(commandString);
+            getLog().info(String.format("Execute:%s", commandString));
+            ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
+            Executor exec = new DefaultExecutor();
+            PumpStreamHandler psh = new PumpStreamHandler(System.out);
+            exec.setStreamHandler(psh);
+            exec.setWatchdog(wd);
+            try{
+                exec.execute(cmd);
+            }catch(ExecuteException ex){
+                //JRE URL not found
+                if(ex.getExitValue() != -4){
+                    throw ex;
+                }else{
+                    continue;
+                }
+            }
+            executed = true;
+        }
+        if(!executed){
+             getLog().error("No Valid Repository found to download JRE");             
         }
         File resultBuildFile = Paths.get(outputDirectory.getAbsolutePath(), finalName + (platform.equals("windows") ? ".exe" : ".bin")).toFile();
         if (!resultBuildFile.exists()) {
@@ -243,6 +262,6 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     public void setjBinaryVersion(String jBinaryVersion) {
         this.jBinaryVersion = jBinaryVersion;
-    } 
+    }
 
 }
