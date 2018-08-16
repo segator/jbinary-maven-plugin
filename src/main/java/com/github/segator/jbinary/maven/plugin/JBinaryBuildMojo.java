@@ -55,7 +55,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
     private String jreVersion;
-    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA3")
+    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA4")
     private String jBinaryVersion;
     @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
     private String JBinaryURLWindows;
