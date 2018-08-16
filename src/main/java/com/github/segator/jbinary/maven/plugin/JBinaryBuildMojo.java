@@ -166,7 +166,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 exec.execute(cmd);
             }catch(ExecuteException ex){
                 //JRE URL not found
-                if(ex.getExitValue() != -4){
+                if(ex.getExitValue() != 4){
                     throw ex;
                 }else{
                     continue;
