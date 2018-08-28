@@ -26,6 +26,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
@@ -35,6 +37,7 @@ import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.archiver.MavenArchiveConfiguration;
+import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.AbstractMojo;
@@ -53,9 +56,10 @@ import org.apache.maven.project.MavenProjectHelper;
 @Mojo(name = "jbinary")
 public class JBinaryBuildMojo extends AbstractMojo {
 
+    //Jbinary Configuration
     @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
     private String jreVersion;
-    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA4")
+    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA5")
     private String jBinaryVersion;
     @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
     private String JBinaryURLWindows;
@@ -66,8 +70,41 @@ public class JBinaryBuildMojo extends AbstractMojo {
     @Parameter(property = "useMavenRepositoryJavaDownload")
     private boolean useMavenRepositoryJavaDownload = false;
 
+    @Parameter(property = "jvmArguments")
+    private String jvmArguments;
+
+    @Parameter(property = "appArguments")
+    private String appArguments;
+
+    @Parameter(property = "winCompany")
+    private String winCompany;
+
+    @Parameter(property = "winCopyright")
+    private String winCopyright;
+
+    @Parameter(property = "winDescription")
+    private String winDescription;
+
+    @Parameter(property = "winExecutionBehaviour")
+    private String winExecutionBehaviour;
+
+    @Parameter(property = "winExecutionEnableConsoleBehaviourArgs")
+    private String winExecutionEnableConsoleBehaviourArgs;
+
+    @Parameter(property = "winIconPath")
+    private String winIconPath;
+
+    @Parameter(property = "winInvoker")
+    private String winInvoker;
+
+    @Parameter(property = "winProductName")
+    private String winProductName;
+
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true)
     private String finalName;
+
+    @Parameter(defaultValue = "${project.version}", readonly = true)
+    private String projectVersion;
 
     @Parameter(defaultValue = "${project.build.directory}", required = true)
     private File outputDirectory;
@@ -104,8 +141,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 File generatedExecutableArtifact = generateExecutable(jBinaryExecutable, platform);
                 archiveFile(generatedExecutableArtifact, platform);
             }
-
-        } catch (IOException | InterruptedException ex) {
+        } catch (Exception ex) {
             throw new MojoFailureException("unexpected error", ex);
         }
     }
@@ -142,40 +178,56 @@ public class JBinaryBuildMojo extends AbstractMojo {
         return jBinaryFile;
     }
 
-    private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException {
+    private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException, OverConstrainedVersionException {
         getLog().info("building executable file with embeded JRE version" + jreVersion);
         List<Repository> repositories = project.getRepositories();
         boolean executed = false;
         for (Repository repository : repositories) {
-            String serverURLParam = useMavenRepositoryJavaDownload ? String.format("-java-server-url \"%s\"", repository.getUrl()) : "";
-            String commandString = String.format("\"%s\" -platform \"%s\" -output-name \"%s\" -jar \"%s\" -build \"%s\" %s",
-                    jBinaryExecutable.getAbsolutePath(),
-                    platform,
-                    finalName,
-                    project.getArtifact().getFile().getAbsolutePath(),
-                    outputDirectory.getAbsolutePath(),
-                    serverURLParam);
-            CommandLine cmd = CommandLine.parse(commandString);
-            getLog().info(String.format("Execute:%s", commandString));
+            StringBuilder jBinaryCommand = new StringBuilder(jBinaryExecutable.getAbsolutePath())
+                    .append(getParameterIfNotNul("-platform", platform))
+                    .append(getParameterIfNotNul("-output-name", finalName))
+                    .append(getParameterIfNotNul("-jar", project.getArtifact().getFile().getAbsolutePath()))
+                    .append(getParameterIfNotNul("-build", outputDirectory.getAbsolutePath()))
+                    .append(getParameterIfNotNul("-java-server-url", useMavenRepositoryJavaDownload ? repository.getUrl() : null))
+                    .append(getParameterIfNotNul("-app-arguments", getAppArguments()))
+                    .append(getParameterIfNotNul("-jvm-arguments", getJvmArguments()));
+            if (platform.equals("windows")) {
+                jBinaryCommand.append(getParameterIfNotNul("-win-company", getWinCompany()))
+                        .append(getParameterIfNotNul("-win-copyright", getWinCopyright()))
+                        .append(getParameterIfNotNul("-win-description", getWinDescription()))
+                        .append(getParameterIfNotNul("-win-execution-behaviour", getWinExecutionBehaviour()))
+                        .append(getParameterIfNotNul("-win-execution-enable-console-behaviour-args", getWinExecutionEnableConsoleBehaviourArgs()))
+                        .append(getParameterIfNotNul("-win-icon-path", getWinIconPath() != null ? new File(project.getBasedir(), getWinIconPath()).getAbsolutePath() : null))
+                        .append(getParameterIfNotNul("-win-invoker", getWinInvoker()))
+                        .append(getParameterIfNotNul("-win-product-name", getWinProductName()))
+                        .append(getParameterIfNotNul("-win-product-version", projectVersion))
+                        .append(getParameterIfNotNul("-win-version-major", project.getArtifact().getSelectedVersion().getMajorVersion()))
+                        .append(getParameterIfNotNul("-win-version-minor", project.getArtifact().getSelectedVersion().getMinorVersion()))
+                        .append(getParameterIfNotNul("-win-version-patch", project.getArtifact().getSelectedVersion().getIncrementalVersion()))
+                        .append(getParameterIfNotNul("-win-version-build", project.getArtifact().getSelectedVersion().getBuildNumber())).toString();
+            }
+            //project.getArtifact().getSelectedVersion().parseVersion(jreVersion);
+            CommandLine cmd = CommandLine.parse(jBinaryCommand.toString());
+            getLog().info(String.format("Execute:%s", jBinaryCommand.toString()));
             ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
             Executor exec = new DefaultExecutor();
             PumpStreamHandler psh = new PumpStreamHandler(System.out);
             exec.setStreamHandler(psh);
             exec.setWatchdog(wd);
-            try{
+            try {
                 exec.execute(cmd);
-            }catch(ExecuteException ex){
+            } catch (ExecuteException ex) {
                 //JRE URL not found
-                if(ex.getExitValue() != 4){
+                if (ex.getExitValue() != 4) {
                     throw ex;
-                }else{
+                } else {
                     continue;
                 }
             }
             executed = true;
         }
-        if(!executed){
-             getLog().error("No Valid Repository found to download JRE");             
+        if (!executed) {
+            getLog().error("No Valid Repository found to download JRE");
         }
         File resultBuildFile = Paths.get(outputDirectory.getAbsolutePath(), finalName + (platform.equals("windows") ? ".exe" : ".bin")).toFile();
         if (!resultBuildFile.exists()) {
@@ -262,6 +314,109 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     public void setjBinaryVersion(String jBinaryVersion) {
         this.jBinaryVersion = jBinaryVersion;
+    }
+
+    public boolean isUseMavenRepositoryJavaDownload() {
+        return useMavenRepositoryJavaDownload;
+    }
+
+    public void setUseMavenRepositoryJavaDownload(boolean useMavenRepositoryJavaDownload) {
+        this.useMavenRepositoryJavaDownload = useMavenRepositoryJavaDownload;
+    }
+
+    public String getJvmArguments() {
+        return jvmArguments;
+    }
+
+    public void setJvmArguments(String jvmArguments) {
+        this.jvmArguments = jvmArguments;
+    }
+
+    public String getAppArguments() {
+        return appArguments;
+    }
+
+    public void setAppArguments(String appArguments) {
+        this.appArguments = appArguments;
+    }
+
+    public String getWinCompany() {
+        return winCompany;
+    }
+
+    public void setWinCompany(String winCompany) {
+        this.winCompany = winCompany;
+    }
+
+    public String getWinCopyright() {
+        return winCopyright;
+    }
+
+    public void setWinCopyright(String winCopyright) {
+        this.winCopyright = winCopyright;
+    }
+
+    public String getWinDescription() {
+        return winDescription;
+    }
+
+    public void setWinDescription(String winDescription) {
+        this.winDescription = winDescription;
+    }
+
+    public String getWinExecutionBehaviour() {
+        return winExecutionBehaviour;
+    }
+
+    public void setWinExecutionBehaviour(String winExecutionBehaviour) {
+        this.winExecutionBehaviour = winExecutionBehaviour;
+    }
+
+    public String getWinExecutionEnableConsoleBehaviourArgs() {
+        return winExecutionEnableConsoleBehaviourArgs;
+    }
+
+    public void setWinExecutionEnableConsoleBehaviourArgs(String winExecutionEnableConsoleBehaviourArgs) {
+        this.winExecutionEnableConsoleBehaviourArgs = winExecutionEnableConsoleBehaviourArgs;
+    }
+
+    public String getWinIconPath() {
+        return winIconPath;
+    }
+
+    public void setWinIconPath(String winIconPath) {
+        this.winIconPath = winIconPath;
+    }
+
+    public String getWinInvoker() {
+        return winInvoker;
+    }
+
+    public void setWinInvoker(String winInvoker) {
+        this.winInvoker = winInvoker;
+    }
+
+    public String getWinProductName() {
+        return winProductName;
+    }
+
+    public void setWinProductName(String winProductName) {
+        this.winProductName = winProductName;
+    }
+
+    public String getProjectVersion() {
+        return projectVersion;
+    }
+
+    public void setProjectVersion(String projectVersion) {
+        this.projectVersion = projectVersion;
+    }
+
+    private String getParameterIfNotNul(String argumentCommand, Object field) {
+        if (field != null && !field.toString().isEmpty()) {
+            return String.format(" %s \"%s\" ", argumentCommand, field);
+        }
+        return "";
     }
 
 }
