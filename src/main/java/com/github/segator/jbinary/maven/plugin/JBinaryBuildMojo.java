@@ -61,6 +61,13 @@ public class JBinaryBuildMojo extends AbstractMojo {
     private String jreVersion;
     @Parameter(property = "jBinaryVersion", defaultValue = "0.0.5-ALPHA5")
     private String jBinaryVersion;
+    
+    @Parameter(property = "compressBinary")
+    private Boolean compressBinary=true;
+    
+    @Parameter(property = "JBinaryJavaDownload")
+    private String jBinaryJavaDownload;
+    
     @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
     private String JBinaryURLWindows;
 
@@ -185,9 +192,11 @@ public class JBinaryBuildMojo extends AbstractMojo {
         for (Repository repository : repositories) {
             StringBuilder jBinaryCommand = new StringBuilder(jBinaryExecutable.getAbsolutePath())
                     .append(getParameterIfNotNul("-platform", platform))
+                    .append(!compressBinary?"-no-compress":"")
                     .append(getParameterIfNotNul("-output-name", finalName))
                     .append(getParameterIfNotNul("-jar", project.getArtifact().getFile().getAbsolutePath()))
                     .append(getParameterIfNotNul("-build", outputDirectory.getAbsolutePath()))
+                    .append(getParameterIfNotNul("-java-download-link", jBinaryJavaDownload))
                     .append(getParameterIfNotNul("-java-server-url", useMavenRepositoryJavaDownload ? repository.getUrl() : null))
                     .append(getParameterIfNotNul("-app-arguments", getAppArguments()))
                     .append(getParameterIfNotNul("-jvm-arguments", getJvmArguments()));
@@ -225,6 +234,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 }
             }
             executed = true;
+            break;
         }
         if (!executed) {
             getLog().error("No Valid Repository found to download JRE");
