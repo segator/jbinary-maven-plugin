@@ -7,7 +7,7 @@ JBinary Maven plugin, do you want to generate a binary with non dependencies of 
 <plugin>
     <groupId>com.github.segator</groupId>
     <artifactId>jbinary-maven-plugin</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.5</version>
     <executions>
         <execution>
             <phase>package</phase>
