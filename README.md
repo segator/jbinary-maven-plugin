@@ -7,7 +7,7 @@ JBinary Maven plugin, do you want to generate a binary with non dependencies of 
 <plugin>
     <groupId>com.github.segator</groupId>
     <artifactId>jbinary-maven-plugin</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.8</version>
     <executions>
         <execution>
             <phase>package</phase>
@@ -15,13 +15,14 @@ JBinary Maven plugin, do you want to generate a binary with non dependencies of 
                 <goal>jbinary</goal>
             </goals>
             <configuration>
+                <jreVersion>1.8.0_131</jreVersion> <!-- Jre version to compile in the executable embeded file-->
                 <jBinaryJavaDownload>http://mycustomrepository.com/{javaType}/{javaVersion}/{javaType}-{javaVersion}-{platform}{architecture}.tgz</jBinaryJavaDownload>
                 <!--If you have your own jre, you can set the url, (the tar.gz file must jave a folder /java inside and jre content inside -->
                 <useMavenRepositoryJavaDownload>true</useMavenRepositoryJavaDownload>
                 <!-- if you have your own repository, expected groupid com.oracle.java, artifact jre|jdk by default is downloaded from here https://artifacts.alfresco.com/nexus
                 This param is skiped if you use jBinaryJavaDownload -->
-                <JBinaryURLWindows>https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe</JBinaryURLWindows>
-                <JBinaryURLLinux>https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s</JBinaryURLLinux> 
+                <jBinaryURLWindows>https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe</jBinaryURLWindows>
+                <jBinaryURLLinux>https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s</jBinaryURLLinux> 
                 <!--Custom JBinary Download URL, %s is replaced by the Jbinary Version -->
                 <jreVersion>1.8.0_131</jreVersion> <!-- Java version will be embeded to generated executable -->
                 <compressBinary>true</compressBinary> <!-- Compress = less binary size, uncompress faster boot-->

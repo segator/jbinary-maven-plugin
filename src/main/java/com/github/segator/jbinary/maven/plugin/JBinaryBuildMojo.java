@@ -55,22 +55,23 @@ import org.apache.maven.project.MavenProjectHelper;
 public class JBinaryBuildMojo extends AbstractMojo {
 
     //Jbinary Configuration
-    @Parameter(property = "jreVersion")
-    private String jreVersion="1.8.0_131";
-    @Parameter(property = "jBinaryVersion")
-    private String jBinaryVersion="0.0.6";
+    @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
+    private String jreVersion;
+
+    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.6")
+    private String jBinaryVersion;
 
     @Parameter(property = "compressBinary")
     private Boolean compressBinary = true;
 
-    @Parameter(property = "JBinaryJavaDownload")
+    @Parameter(property = "jBinaryJavaDownload")
     private String jBinaryJavaDownload;
 
-    @Parameter(property = "JBinaryURLWindows")
-    private String JBinaryURLWindows="https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe";
+    @Parameter(property = "jBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
+    private String jBinaryURLWindows;
 
-    @Parameter(property = "JBinaryURLLinux")
-    private String JBinaryURLLinux="https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s";
+    @Parameter(property = "jBinaryURLLinux", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s")
+    private String jBinaryURLLinux;
 
     @Parameter(property = "useMavenRepositoryJavaDownload")
     private boolean useMavenRepositoryJavaDownload = false;
@@ -147,6 +148,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 archiveFile(generatedExecutableArtifact, platform);
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             throw new MojoFailureException("unexpected error", ex);
         }
     }
@@ -160,10 +162,10 @@ public class JBinaryBuildMojo extends AbstractMojo {
         String JBinaryURL = "";
         switch (platform) {
             case "windows":
-                JBinaryURL = JBinaryURLWindows;
+                JBinaryURL = jBinaryURLWindows;
                 break;
             case "linux":
-                JBinaryURL = JBinaryURLLinux;
+                JBinaryURL = jBinaryURLLinux;
                 break;
         }
         URL jbinaryURL = new URL(String.format(JBinaryURL, jBinaryVersion, jBinaryVersion));
@@ -194,6 +196,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 cliJbinaryBuild.addArgument("-no-compress");
             }
             addCliArgument(cliJbinaryBuild, "-output-name", finalName);
+            addCliArgument(cliJbinaryBuild, "-jre-version", jreVersion);
             addCliArgument(cliJbinaryBuild, "-jar", project.getArtifact().getFile().getAbsolutePath());
             addCliArgument(cliJbinaryBuild, "-build", outputDirectory.getAbsolutePath());
             addCliArgument(cliJbinaryBuild, "-java-download-link", jBinaryJavaDownload);
@@ -214,9 +217,8 @@ public class JBinaryBuildMojo extends AbstractMojo {
                 addCliArgument(cliJbinaryBuild, "-win-version-minor", project.getArtifact().getSelectedVersion().getMinorVersion());
                 addCliArgument(cliJbinaryBuild, "-win-version-patch", project.getArtifact().getSelectedVersion().getIncrementalVersion());
                 addCliArgument(cliJbinaryBuild, "-win-version-build", project.getArtifact().getSelectedVersion().getBuildNumber());
-            }
-            //project.getArtifact().getSelectedVersion().parseVersion(jreVersion);
-            
+            }            
+
             getLog().info(String.format("Execute:%s", cliJbinaryBuild.toString()));
             ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
             Executor exec = new DefaultExecutor();
@@ -256,19 +258,19 @@ public class JBinaryBuildMojo extends AbstractMojo {
     }
 
     public String getJBinaryURLWindows() {
-        return JBinaryURLWindows;
+        return jBinaryURLWindows;
     }
 
     public void setJBinaryURLWindows(String JBinaryURLWindows) {
-        this.JBinaryURLWindows = JBinaryURLWindows;
+        this.jBinaryURLWindows = JBinaryURLWindows;
     }
 
     public String getJBinaryURLLinux() {
-        return JBinaryURLLinux;
+        return jBinaryURLLinux;
     }
 
     public void setJBinaryURLLinux(String JBinaryURLLinux) {
-        this.JBinaryURLLinux = JBinaryURLLinux;
+        this.jBinaryURLLinux = JBinaryURLLinux;
     }
 
     public String getFinalName() {
@@ -421,6 +423,22 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     public void setProjectVersion(String projectVersion) {
         this.projectVersion = projectVersion;
+    }
+
+    public Boolean getCompressBinary() {
+        return compressBinary;
+    }
+
+    public void setCompressBinary(Boolean compressBinary) {
+        this.compressBinary = compressBinary;
+    }
+
+    public String getJBinaryJavaDownload() {
+        return jBinaryJavaDownload;
+    }
+
+    public void setJBinaryJavaDownload(String jBinaryJavaDownload) {
+        this.jBinaryJavaDownload = jBinaryJavaDownload;
     }
 
     private void addCliArgument(CommandLine cli, String argumentCommand, Object field) {
