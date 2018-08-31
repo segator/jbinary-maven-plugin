@@ -26,8 +26,6 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
@@ -57,22 +55,22 @@ import org.apache.maven.project.MavenProjectHelper;
 public class JBinaryBuildMojo extends AbstractMojo {
 
     //Jbinary Configuration
-    @Parameter(property = "jreVersion", defaultValue = "1.8.0_131")
-    private String jreVersion;
-    @Parameter(property = "jBinaryVersion", defaultValue = "0.0.6")
-    private String jBinaryVersion;
-    
+    @Parameter(property = "jreVersion")
+    private String jreVersion="1.8.0_131";
+    @Parameter(property = "jBinaryVersion")
+    private String jBinaryVersion="0.0.6";
+
     @Parameter(property = "compressBinary")
-    private Boolean compressBinary=true;
-    
+    private Boolean compressBinary = true;
+
     @Parameter(property = "JBinaryJavaDownload")
     private String jBinaryJavaDownload;
-    
-    @Parameter(property = "JBinaryURLWindows", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe")
-    private String JBinaryURLWindows;
 
-    @Parameter(property = "JBinaryURLLinux", defaultValue = "https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s")
-    private String JBinaryURLLinux;
+    @Parameter(property = "JBinaryURLWindows")
+    private String JBinaryURLWindows="https://github.com/segator/jbinary/releases/download/%s/windows_amd64_jbinary_%s.exe";
+
+    @Parameter(property = "JBinaryURLLinux")
+    private String JBinaryURLLinux="https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s";
 
     @Parameter(property = "useMavenRepositoryJavaDownload")
     private boolean useMavenRepositoryJavaDownload = false;
@@ -190,41 +188,44 @@ public class JBinaryBuildMojo extends AbstractMojo {
         List<Repository> repositories = project.getRepositories();
         boolean executed = false;
         for (Repository repository : repositories) {
-            StringBuilder jBinaryCommand = new StringBuilder(jBinaryExecutable.getAbsolutePath())
-                    .append(getParameterIfNotNul("-platform", platform))
-                    .append(!compressBinary?"-no-compress":"")
-                    .append(getParameterIfNotNul("-output-name", finalName))
-                    .append(getParameterIfNotNul("-jar", project.getArtifact().getFile().getAbsolutePath()))
-                    .append(getParameterIfNotNul("-build", outputDirectory.getAbsolutePath()))
-                    .append(getParameterIfNotNul("-java-download-link", jBinaryJavaDownload))
-                    .append(getParameterIfNotNul("-java-server-url", useMavenRepositoryJavaDownload ? repository.getUrl() : null))
-                    .append(getParameterIfNotNul("-app-arguments", getAppArguments()))
-                    .append(getParameterIfNotNul("-jvm-arguments", getJvmArguments()));
+            CommandLine cliJbinaryBuild = new CommandLine(jBinaryExecutable);
+            addCliArgument(cliJbinaryBuild, "-platform", platform);
+            if (!compressBinary) {
+                cliJbinaryBuild.addArgument("-no-compress");
+            }
+            addCliArgument(cliJbinaryBuild, "-output-name", finalName);
+            addCliArgument(cliJbinaryBuild, "-jar", project.getArtifact().getFile().getAbsolutePath());
+            addCliArgument(cliJbinaryBuild, "-build", outputDirectory.getAbsolutePath());
+            addCliArgument(cliJbinaryBuild, "-java-download-link", jBinaryJavaDownload);
+            addCliArgument(cliJbinaryBuild, "-java-server-url", useMavenRepositoryJavaDownload ? repository.getUrl() : null);
+            addCliArgument(cliJbinaryBuild, "-app-arguments", getAppArguments());
+            addCliArgument(cliJbinaryBuild, "-jvm-arguments", getJvmArguments());
             if (platform.equals("windows")) {
-                jBinaryCommand.append(getParameterIfNotNul("-win-company", getWinCompany()))
-                        .append(getParameterIfNotNul("-win-copyright", getWinCopyright()))
-                        .append(getParameterIfNotNul("-win-description", getWinDescription()))
-                        .append(getParameterIfNotNul("-win-execution-behaviour", getWinExecutionBehaviour()))
-                        .append(getParameterIfNotNul("-win-execution-enable-console-behaviour-args", getWinExecutionEnableConsoleBehaviourArgs()))
-                        .append(getParameterIfNotNul("-win-icon-path", getWinIconPath() != null ? new File(project.getBasedir(), getWinIconPath()).getAbsolutePath() : null))
-                        .append(getParameterIfNotNul("-win-invoker", getWinInvoker()))
-                        .append(getParameterIfNotNul("-win-product-name", getWinProductName()))
-                        .append(getParameterIfNotNul("-win-product-version", projectVersion))
-                        .append(getParameterIfNotNul("-win-version-major", project.getArtifact().getSelectedVersion().getMajorVersion()))
-                        .append(getParameterIfNotNul("-win-version-minor", project.getArtifact().getSelectedVersion().getMinorVersion()))
-                        .append(getParameterIfNotNul("-win-version-patch", project.getArtifact().getSelectedVersion().getIncrementalVersion()))
-                        .append(getParameterIfNotNul("-win-version-build", project.getArtifact().getSelectedVersion().getBuildNumber())).toString();
+                addCliArgument(cliJbinaryBuild, "-win-company", getWinCompany());
+                addCliArgument(cliJbinaryBuild, "-win-copyright", getWinCopyright());
+                addCliArgument(cliJbinaryBuild, "-win-description", getWinDescription());
+                addCliArgument(cliJbinaryBuild, "-win-execution-behaviour", getWinExecutionBehaviour());
+                addCliArgument(cliJbinaryBuild, "-win-execution-enable-console-behaviour-args", getWinExecutionEnableConsoleBehaviourArgs());
+                addCliArgument(cliJbinaryBuild, "-win-icon-path", getWinIconPath() != null ? new File(project.getBasedir(), getWinIconPath()).getAbsolutePath() : null);
+                addCliArgument(cliJbinaryBuild, "-win-invoker", getWinInvoker());
+                addCliArgument(cliJbinaryBuild, "-win-product-name", getWinProductName());
+                addCliArgument(cliJbinaryBuild, "-win-product-version", projectVersion);
+                addCliArgument(cliJbinaryBuild, "-win-version-major", project.getArtifact().getSelectedVersion().getMajorVersion());
+                addCliArgument(cliJbinaryBuild, "-win-version-minor", project.getArtifact().getSelectedVersion().getMinorVersion());
+                addCliArgument(cliJbinaryBuild, "-win-version-patch", project.getArtifact().getSelectedVersion().getIncrementalVersion());
+                addCliArgument(cliJbinaryBuild, "-win-version-build", project.getArtifact().getSelectedVersion().getBuildNumber());
             }
             //project.getArtifact().getSelectedVersion().parseVersion(jreVersion);
-            CommandLine cmd = CommandLine.parse(jBinaryCommand.toString());
-            getLog().info(String.format("Execute:%s", jBinaryCommand.toString()));
+            
+            getLog().info(String.format("Execute:%s", cliJbinaryBuild.toString()));
             ExecuteWatchdog wd = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
             Executor exec = new DefaultExecutor();
             PumpStreamHandler psh = new PumpStreamHandler(System.out);
             exec.setStreamHandler(psh);
             exec.setWatchdog(wd);
+            exec.setWorkingDirectory(outputDirectory);
             try {
-                exec.execute(cmd);
+                exec.execute(cliJbinaryBuild);
             } catch (ExecuteException ex) {
                 //JRE URL not found
                 if (ex.getExitValue() != 4) {
@@ -422,11 +423,10 @@ public class JBinaryBuildMojo extends AbstractMojo {
         this.projectVersion = projectVersion;
     }
 
-    private String getParameterIfNotNul(String argumentCommand, Object field) {
+    private void addCliArgument(CommandLine cli, String argumentCommand, Object field) {
         if (field != null && !field.toString().isEmpty()) {
-            return String.format(" %s \"%s\" ", argumentCommand, field);
+            cli.addArgument(argumentCommand);
+            cli.addArgument(field.toString(), false);
         }
-        return "";
     }
-
 }
