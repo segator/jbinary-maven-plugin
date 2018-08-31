@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.segator</groupId>
     <artifactId>jbinary-maven-plugin</artifactId>
-    <version>1.0.8-SNAPSHOT</version>
+    <version>1.0.8</version>
     <packaging>maven-plugin</packaging>
     
     <name>${project.groupId}:${project.artifactId}</name>
@@ -22,7 +22,7 @@
         <connection>scm:git:ssh://git@github.com/segator/jbinary-maven-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/segator/jbinary-maven-plugin.git</developerConnection>
         <url>http://github.com/segator/jbinary-maven-plugin/tree/master</url>
-        <tag>HEAD</tag>
+        <tag>v1.0.8</tag>
     </scm>
 
  
