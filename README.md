@@ -25,6 +25,8 @@ JBinary Maven plugin, do you want to generate a binary with non dependencies of 
                 <jBinaryURLLinux>https://github.com/segator/jbinary/releases/download/%s/linux_amd64_jbinary_%s</jBinaryURLLinux> 
                 <!--Custom JBinary Download URL, %s is replaced by the Jbinary Version -->
                 <jreVersion>1.8.0_131</jreVersion> <!-- Java version will be embeded to generated executable -->
+                <mavenInstallArtifact>true</mavenInstallArtifact> <!-- If true, generated artifacts will be installed to maven local repository and 
+                selectable for other maven plugins, like maven-release-plugin -->
                 <compressBinary>true</compressBinary> <!-- Compress = less binary size, uncompress faster boot-->
                 <jvmArguments>-Xms512M;-Xmx1024M</jvmArguments> <!-- Static JVM Arguments you want to be used by generated binary -->
                 <appArguments>--verbose</appArguments> <!-- Static Applicaiton arguments you want to be used by generated binary -->

@@ -63,6 +63,9 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     @Parameter(property = "compressBinary")
     private Boolean compressBinary = true;
+    
+    @Parameter(property = "mavenInstallArtifact")
+    private Boolean mavenInstallArtifact = true;
 
     @Parameter(property = "jBinaryJavaDownload")
     private String jBinaryJavaDownload;
@@ -145,7 +148,9 @@ public class JBinaryBuildMojo extends AbstractMojo {
             String[] osList = new String[]{"windows", "linux"};
             for (String platform : osList) {
                 File generatedExecutableArtifact = generateExecutable(jBinaryExecutable, platform);
-                archiveFile(generatedExecutableArtifact, platform);
+                if(mavenInstallArtifact){
+                    archiveFile(generatedExecutableArtifact, platform);
+                }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -187,6 +192,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
 
     private File generateExecutable(File jBinaryExecutable, String platform) throws IOException, InterruptedException, OverConstrainedVersionException {
         getLog().info("building executable file with embeded JRE version" + jreVersion);
+        String baseBuildFileName = String.format("%s-%s", finalName,projectVersion);
         List<Repository> repositories = project.getRepositories();
         boolean executed = false;
         for (Repository repository : repositories) {
@@ -195,7 +201,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
             if (!compressBinary) {
                 cliJbinaryBuild.addArgument("-no-compress");
             }
-            addCliArgument(cliJbinaryBuild, "-output-name", finalName);
+            addCliArgument(cliJbinaryBuild, "-output-name", baseBuildFileName);
             addCliArgument(cliJbinaryBuild, "-jre-version", jreVersion);
             addCliArgument(cliJbinaryBuild, "-jar", project.getArtifact().getFile().getAbsolutePath());
             addCliArgument(cliJbinaryBuild, "-build", outputDirectory.getAbsolutePath());
@@ -242,7 +248,7 @@ public class JBinaryBuildMojo extends AbstractMojo {
         if (!executed) {
             getLog().error("No Valid Repository found to download JRE");
         }
-        File resultBuildFile = Paths.get(outputDirectory.getAbsolutePath(), finalName + (platform.equals("windows") ? ".exe" : ".bin")).toFile();
+        File resultBuildFile = Paths.get(outputDirectory.getAbsolutePath(), baseBuildFileName + (platform.equals("windows") ? ".exe" : ".bin")).toFile();
         if (!resultBuildFile.exists()) {
             throw new IOException("Result File " + resultBuildFile.getAbsolutePath() + " hasn't been generated");
         }
