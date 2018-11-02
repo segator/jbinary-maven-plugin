@@ -58,7 +58,7 @@ and add in your $PATH the $GOBIN path
 You could try the new cool system of java modules in java9 to create a very tiny jre
 To create a tiny java9 module you can use jlink(installed by default on a JDK installation)
 ```bash
-jlink --module-path $JAVA_HOME/jmods --verbose --compress 2 --no-header-files --output  "$HOME/myjre/java" --add-modules java.base,java.rmi,java.xml,java.desktop,java.sql
+jlink --module-path $JAVA_HOME/jmods --verbose --compress 2 --no-man-pages --no-header-files --output  "$HOME/myjre/java" --add-modules java.base,java.rmi,java.xml,java.desktop,java.sql
 tar -czvf my-custom-tiny-jre.tar.gz "$HOME/myjre/java"
 ```
 After create the tar.gz upload to a web server or mvn repository and use in your mvn pom
